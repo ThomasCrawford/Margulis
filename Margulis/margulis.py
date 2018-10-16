@@ -1,5 +1,10 @@
 import subprocess
 import cmath
+import numpy as np
+
+import time
+start_time = time.time()
+
 
 
 #interact with snap, return a list of geodesics of lenth less than cutoff
@@ -30,7 +35,7 @@ def get_ortholines(manifold_number, cutoff, geodesic1, geodesic2):
 #has to distinguish between ortholines going to different geodesics from ortholines going back to original geodesic
 def get_shortest_ortholine(manifold_number, cutoff, geodesic1, geodesic2):
 	ortholines = get_ortholines(manifold_number, cutoff, geodesic1, geodesic2)
-	if len(ortholines) == 0: return get_shortest_ortholine(manifold_number, cutoff+.2, geodesic1, geodesic2)
+	if len(ortholines) == 0: return get_shortest_ortholine(manifold_number, cutoff+1, geodesic1, geodesic2)
 	else:
 		if geodesic1 == geodesic2:
 			return crop_ortholine_text(ortholines[0])
@@ -38,7 +43,7 @@ def get_shortest_ortholine(manifold_number, cutoff, geodesic1, geodesic2):
 			for ortholine in ortholines:
 				if ortholine_index_different(ortholine):
 					return crop_ortholine_text(ortholine)
-			return get_shortest_ortholine(manifold_number, cutoff+.2, geodesic1, geodesic2)
+			return get_shortest_ortholine(manifold_number, cutoff+1, geodesic1, geodesic2)
 
 #outputs the complex lengt of an ortholine
 def crop_ortholine_text(ortholine_string):
@@ -54,12 +59,33 @@ def ortholine_index_different(ortholine_string):
 
 
 
+def isMargulis(manifoldNumber, number):
+	geodesics = get_geodesics(manifoldNumber,number)
+	print len(geodesics)
+	if len(geodesics)==0: return True
+	else: 
+		tube_radii =[]
+		for geo in geodesics:
+			tube_radii.append(naiveTubeRadius(geo,number))
+		for geo0 in range(len(geodesics)):
+			for geo1 in range(geo0,len(geodesics)):
+				print tube_radii[geo0], tube_radii[geo1], get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
+				if tube_radii[geo0]+ tube_radii[geo1] >= get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real:
+					return False
+		return True
+
+def naiveTubeRadius(geodesic_lenght, number):
+	r = geodesic_lenght.real
+	im = geodesic_lenght.imag
+	return np.arccosh(np.sqrt((np.cosh(number)-np.cos(im))/(np.cosh(r)-np.cos(im))))
+
+for i in range(1,10):
+	print isMargulis(i,.9)
 
 
 
 
 
-
-
+print "------------------", time.time() - start_time, "seconds ---------------"
 
 
