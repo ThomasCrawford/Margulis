@@ -1,3 +1,6 @@
+#Used for assorted testing.  Ignore please
+
+
 import subprocess
 import csv
 import cmath

@@ -9,19 +9,18 @@ from scipy.optimize import fsolve
 import time
 start_time = time.time()
 
-muGuess = 1.3
-increment = .2
-getOrtholineIncrement = .5
 
-snapCount = 0
+muGuess = 1.3
+#if muGuess is too low, try again with muGuess + 
+increment = .2
+#with too high an increment, snap is more likely to crash
+getOrtholineIncrement = .5
 
 #interact with snap, return a list of geodesics of lenth less than cutoff
 def get_geodesics(manifold_number, cutoff):
 	snap_interaction = "r closed {}\n print geodesics {}\n".format(str(manifold_number), str(cutoff))
 	p = subprocess.Popen("snap", stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, universal_newlines=True)  
 	output, err = p.communicate(input=snap_interaction)
-	global snapCount 
-	snapCount+=1
 	output = output.split('\n')
 	if output[2] == "Problem computing a Dirichlet domain for this group.": return False
 	else:
@@ -38,8 +37,6 @@ def get_ortholines(manifold_number, cutoff, geodesic1, geodesic2):
 	snap_interaction = "r closed {}\n print geodesics {}\n print ortholines {}\n".format(str(manifold_number),str(cutoff),str(cutoff) +" "+ str(geodesic1) +" "+ str(geodesic2))
 	p = subprocess.Popen("snap", stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, universal_newlines=True)  
 	output, err = p.communicate(input=snap_interaction)
-	global snapCount 
-	snapCount +=1
 	output_list = output.split('\n')[2:-1]
 	ortholine_count = int(output_list[-1][:output_list[-1].find(" ")])
 	just_ortholines = output_list[-ortholine_count-1:-1]
@@ -142,7 +139,7 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 def findCutoff(manifoldNumber, margulisGuess):
 	geodesics = get_geodesics(manifoldNumber,margulisGuess)
 	if not geodesics: return [0,0,0,"No Dirichlet Domain"]
-	print manifoldNumber, len(geodesics)
+	# print manifoldNumber, len(geodesics)
 	cutoffCandidates = []
 	assert len(geodesics)!=0
 	tube_radii =[]
@@ -171,10 +168,9 @@ def organize(manifoldNumber, margulisGuess):
 	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
 
 
-
 def main():
 	for i in range(10000, 12000):
-		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
+		# print "------------------", time.time() - start_time, "seconds ---------------"
 		csvLine = organize(i,muGuess)
 		# print csvLine[3]
 		with open('margulis.csv','a') as file:
@@ -182,7 +178,6 @@ def main():
 			file_writer.writerow(csvLine)
 			file.close()
 
-
-
 if __name__ == "__main__":
 	main()
+

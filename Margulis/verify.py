@@ -8,7 +8,6 @@ from scipy.optimize import fsolve
 import time
 start_time = time.time()
 
-muGuess = 1.4
 increment = .2
 getOrtholineIncrement = .3
 
@@ -97,11 +96,6 @@ def isMargulis(manifoldNumber, number):
 					# return geo0, tube_radii[geo0], geo1, tube_radii[geo1],get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
 		return True
 
-def naiveTubeRadius(geodesic_lenght, number):
-	r = geodesic_lenght.real
-	im = geodesic_lenght.imag
-	return np.arccosh(np.sqrt((np.cosh(number)-np.cos(im))/(np.cosh(r)-np.cos(im))))
-
 def tubeRadius(geodesic_lenght, number):
 	r = geodesic_lenght.real
 	im = geodesic_lenght.imag
@@ -111,11 +105,8 @@ def tubeRadius(geodesic_lenght, number):
 	return max(possibleRadius)
 
 
-ij = 1
 with open('margulis.csv','r') as file:
 	file_reader = csv.reader(file, delimiter=',')
 	for line in file_reader:
-		if ij > 4205:
-			print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
-		ij = ij +1
+		print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
 
