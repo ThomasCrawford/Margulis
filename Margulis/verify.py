@@ -67,7 +67,7 @@ def get_shortest_ortholine(manifold_number, cutoff, geodesic1, geodesic2):
 			for ortholine in ortholines:
 				if ortholine_index_different(ortholine):
 					return crop_ortholine_text(ortholine)
-			print ortholines, cutoff
+			# print ortholines, cutoff
 			return get_shortest_ortholine(manifold_number, cutoff+getOrtholineIncrement, geodesic1, geodesic2)
 
 #outputs the complex length of an ortholine
@@ -94,6 +94,7 @@ def isMargulis(manifoldNumber, number):
 				# print tube_radii[geo0], tube_radii[geo1], get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
 				if tube_radii[geo0]+ tube_radii[geo1] >= get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real:
 					return False
+					# return geo0, tube_radii[geo0], geo1, tube_radii[geo1],get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
 		return True
 
 def naiveTubeRadius(geodesic_lenght, number):
@@ -109,13 +110,10 @@ def tubeRadius(geodesic_lenght, number):
 		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
 	return max(possibleRadius)
 
-ij=1
 with open('margulis.csv','r') as file:
 	file_reader = csv.reader(file, delimiter=',')
 	for line in file_reader:
-		if ij == 129:
-			print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
-		ij = ij+1
-
+		# if ij == 154:
+		print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
 
 

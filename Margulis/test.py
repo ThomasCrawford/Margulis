@@ -3,6 +3,7 @@ import csv
 import cmath
 import numpy as np
 from scipy.optimize import fsolve
+#import verify
 
 
 import time
@@ -100,11 +101,12 @@ def naiveTubeRadius(geodesic_length, number):
 def tubeRadius(geodesic_length, number):
 	r = geodesic_length.real
 	im = geodesic_length.imag
-	if r == number: return r
-	possibleRadius = []
-	for n in range(1,int(np.ceil(number/r))):
-		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
-	return max(possibleRadius)
+	if number - r < 0.00000001: return 0
+	else:
+		possibleRadius = []
+		for n in range(1,int(np.ceil(number/r))):
+			possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
+		return max(possibleRadius)
 
 #if margulisGuess is an overestimation, some tubes intersect, one of these intersections is the cutoff  
 #Return the number that makes them just barely intersect
@@ -146,29 +148,65 @@ def naiveSolveForMu(geoLength0, geoLength1, ortholength):
 	return answer
 
 def solveForMu(geoLength0, geoLength1, ortholength):
-	r0 = geoLength0.real
-	im0 = geoLength0.imag
-	r1 = geoLength1.real
-	im1 = geoLength1.imag
+	if geoLength0.real > geoLength1.real:
+		r0 = geoLength1.real
+		im0 = geoLength1.imag
+		r1 = geoLength0.real
+		im1 = geoLength0.imag
+	else:
+		r0 = geoLength0.real
+		im0 = geoLength0.imag
+		r1 = geoLength1.real
+		im1 = geoLength1.imag
 	#potentially, a tube around geodesic0, dictated by mu which is less than r1 can intersect geodesic1.  
 	#in this case, the cutoff mu is r1  (this messes with the later solve functions)
 	#we can assume r1>r0
-	if tubeRadius(geoLength0,r1) >= ortholength: return [r1]
-	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
+	if tubeRadius(geoLength0,r1) >= ortholength: 
+		return [r1]
+	func = lambda mu : -ortholength if mu<r0 else \
+		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))-ortholength if mu<=r1 else \
+		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	initialAnswer = fsolve(func,max(r0,r1)+.5)
+	initialAnswer = fsolve(func,max(r0,r1)+.01, factor = .1)
 	potentialAnswers = []
-	for n0 in range(1,int(np.ceil(initialAnswer/r0))):
-		for n1 in range(1,int(np.ceil(initialAnswer/r1))):
-			func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
+	for n0 in range(1,int(np.ceil((initialAnswer+.01)/r0))):
+		for n1 in range(1,int(np.ceil((initialAnswer+.01)/r1))):
+			func = lambda mu : -ortholength if mu<r0 else \
+				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))-ortholength if mu<=r1 else \
+				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n1*im1))/(np.cosh(n1*r1)-np.cos(n1*im1)))) - ortholength
-			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.5,factor = .1))
+			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .1))
 	return min(potentialAnswers)
 
 def organize(manifoldNumber, margulisGuess):
 	name, volume = get_name_and_volume(manifoldNumber)
 	geoLength0, geoLength1, ortholength, margulis = findCutoff(manifoldNumber, margulisGuess)
 	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
+
+# for i in range(6537,10000):
+# 	print organize(i,muGuess)
+# 	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
+
+
+
+# for i in range(1,10):
+# 	print findCutoff(i, 1)[-1]
+
+def main():
+	for i in range(171,200):
+		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
+		csvLine = organize(i,muGuess)
+		# print csvLine[3]
+		with open('margulis.csv','a') as file:
+			file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+			file_writer.writerow(csvLine)
+			file.close()
+
+
+
+
+if __name__ == "__main__":
+	main()
 
 # print isMargulis(71, 1.13857016)
 # # print isMargulis(71,1.13857017)
@@ -177,7 +215,7 @@ def organize(manifoldNumber, margulisGuess):
 # print tubeRadius(1.128919032732028+2.579708343875504j,1.12891904)
 # # print 0.58639061556954
 
-print findCutoff(71, 1.2)
+# print findCutoff(71, 1.2)
 
-print isMargulis(71, 1.1289190)
-print isMargulis(71, 1.1289191)
+# print isMargulis(71, 1.1289190)
+# print isMargulis(71, 1.1289191)

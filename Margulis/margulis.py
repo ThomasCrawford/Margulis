@@ -148,23 +148,34 @@ def naiveSolveForMu(geoLength0, geoLength1, ortholength):
 	return answer
 
 def solveForMu(geoLength0, geoLength1, ortholength):
-	r0 = geoLength0.real
-	im0 = geoLength0.imag
-	r1 = geoLength1.real
-	im1 = geoLength1.imag
+	if geoLength0.real > geoLength1.real:
+		r0 = geoLength1.real
+		im0 = geoLength1.imag
+		r1 = geoLength0.real
+		im1 = geoLength0.imag
+	else:
+		r0 = geoLength0.real
+		im0 = geoLength0.imag
+		r1 = geoLength1.real
+		im1 = geoLength1.imag
 	#potentially, a tube around geodesic0, dictated by mu which is less than r1 can intersect geodesic1.  
 	#in this case, the cutoff mu is r1  (this messes with the later solve functions)
 	#we can assume r1>r0
-	if tubeRadius(geoLength0,r1) >= ortholength: return [r1]
-	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
+	if tubeRadius(geoLength0,r1) >= ortholength: 
+		return [r1]
+	func = lambda mu : -ortholength if mu<r0 else \
+		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))-ortholength if mu<=r1 else \
+		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	initialAnswer = fsolve(func,max(r0,r1)+.5)
+	initialAnswer = fsolve(func,max(r0,r1)+.01, factor = .1)
 	potentialAnswers = []
-	for n0 in range(1,int(np.ceil(initialAnswer/r0))):
-		for n1 in range(1,int(np.ceil(initialAnswer/r1))):
-			func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
+	for n0 in range(1,int(np.ceil((initialAnswer+.01)/r0))):
+		for n1 in range(1,int(np.ceil((initialAnswer+.01)/r1))):
+			func = lambda mu : -ortholength if mu<r0 else \
+				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))-ortholength if mu<=r1 else \
+				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n1*im1))/(np.cosh(n1*r1)-np.cos(n1*im1)))) - ortholength
-			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.5,factor = .1))
+			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .1))
 	return min(potentialAnswers)
 
 def organize(manifoldNumber, margulisGuess):
@@ -185,10 +196,12 @@ def main():
 	for i in range(1,200):
 		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
 		csvLine = organize(i,muGuess)
+		# print csvLine[3]
 		with open('margulis.csv','a') as file:
 			file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			file_writer.writerow(csvLine)
 			file.close()
+
 
 
 if __name__ == "__main__":
