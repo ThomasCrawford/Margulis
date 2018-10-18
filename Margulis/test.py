@@ -100,6 +100,7 @@ def naiveTubeRadius(geodesic_length, number):
 def tubeRadius(geodesic_length, number):
 	r = geodesic_length.real
 	im = geodesic_length.imag
+	if r == number: return r
 	possibleRadius = []
 	for n in range(1,int(np.ceil(number/r))):
 		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
@@ -149,6 +150,10 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 	im0 = geoLength0.imag
 	r1 = geoLength1.real
 	im1 = geoLength1.imag
+	#potentially, a tube around geodesic0, dictated by mu which is less than r1 can intersect geodesic1.  
+	#in this case, the cutoff mu is r1  (this messes with the later solve functions)
+	#we can assume r1>r0
+	if tubeRadius(geoLength0,r1) >= ortholength: return [r1]
 	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
 	initialAnswer = fsolve(func,max(r0,r1)+.5)
@@ -165,12 +170,14 @@ def organize(manifoldNumber, margulisGuess):
 	geoLength0, geoLength1, ortholength, margulis = findCutoff(manifoldNumber, margulisGuess)
 	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
 
-for i in range(1,20):
-	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
-	# file_writer.writerow(organize(i,1.2))
-	with open('margulis.csv','a') as file:
-		file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-		file_writer.writerow(organize(i,muGuess))
-		file.close()
+# print isMargulis(71, 1.13857016)
+# # print isMargulis(71,1.13857017)
+# print solveForMu(0.722777571897752-1.213393634973948j,1.128919032732028+2.579708343875504j,0.586390615569540)
+# print tubeRadius(0.722777571897752-1.213393634973948j,1.13857017)
+# print tubeRadius(1.128919032732028+2.579708343875504j,1.12891904)
+# # print 0.58639061556954
 
+print findCutoff(71, 1.2)
 
+print isMargulis(71, 1.1289190)
+print isMargulis(71, 1.1289191)

@@ -3,6 +3,7 @@ import csv
 import cmath
 import numpy as np
 from scipy.optimize import fsolve
+#import verify
 
 
 import time
@@ -100,10 +101,12 @@ def naiveTubeRadius(geodesic_length, number):
 def tubeRadius(geodesic_length, number):
 	r = geodesic_length.real
 	im = geodesic_length.imag
-	possibleRadius = []
-	for n in range(1,int(np.ceil(number/r))):
-		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
-	return max(possibleRadius)
+	if number - r < 0.00000001: return 0
+	else:
+		possibleRadius = []
+		for n in range(1,int(np.ceil(number/r))):
+			possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
+		return max(possibleRadius)
 
 #if margulisGuess is an overestimation, some tubes intersect, one of these intersections is the cutoff  
 #Return the number that makes them just barely intersect
@@ -149,6 +152,10 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 	im0 = geoLength0.imag
 	r1 = geoLength1.real
 	im1 = geoLength1.imag
+	#potentially, a tube around geodesic0, dictated by mu which is less than r1 can intersect geodesic1.  
+	#in this case, the cutoff mu is r1  (this messes with the later solve functions)
+	#we can assume r1>r0
+	if tubeRadius(geoLength0,r1) >= ortholength: return [r1]
 	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
 	initialAnswer = fsolve(func,max(r0,r1)+.5)
@@ -174,17 +181,15 @@ def organize(manifoldNumber, margulisGuess):
 # for i in range(1,10):
 # 	print findCutoff(i, 1)[-1]
 
-
-for i in range(1,20):
-	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
-	# file_writer.writerow(organize(i,1.2))
-	with open('margulis.csv','a') as file:
-		file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-		file_writer.writerow(organize(i,muGuess))
-		file.close()
-
-
-
-print "------------------", time.time() - start_time, "seconds ---------------"
+def main():
+	for i in range(1,200):
+		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
+		csvLine = organize(i,muGuess)
+		with open('margulis.csv','a') as file:
+			file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+			file_writer.writerow(csvLine)
+			file.close()
 
 
+if __name__ == "__main__":
+	main()
