@@ -58,6 +58,7 @@ def get_name_and_volume(manifold_number):
 def get_shortest_ortholine(manifold_number, cutoff, geodesic1, geodesic2):
 	ortholines = get_ortholines(manifold_number, cutoff, geodesic1, geodesic2)
 	if len(ortholines) == 0: 
+		# print "no ortholines", cutoff, geodesic1, geodesic2
 		return get_shortest_ortholine(manifold_number, cutoff+getOrtholineIncrement, geodesic1, geodesic2)
 	else:
 		if geodesic1 == geodesic2:
@@ -66,6 +67,7 @@ def get_shortest_ortholine(manifold_number, cutoff, geodesic1, geodesic2):
 			for ortholine in ortholines:
 				if ortholine_index_different(ortholine):
 					return crop_ortholine_text(ortholine)
+			print ortholines, cutoff
 			return get_shortest_ortholine(manifold_number, cutoff+getOrtholineIncrement, geodesic1, geodesic2)
 
 #outputs the complex length of an ortholine
@@ -81,6 +83,7 @@ def ortholine_index_different(ortholine_string):
 
 def isMargulis(manifoldNumber, number):
 	geodesics = get_geodesics(manifoldNumber,number)
+	# print len(geodesics)
 	if len(geodesics)==0: return True
 	else: 
 		tube_radii =[]
@@ -88,103 +91,27 @@ def isMargulis(manifoldNumber, number):
 			tube_radii.append(tubeRadius(geo,number))
 		for geo0 in range(len(geodesics)):
 			for geo1 in range(geo0,len(geodesics)):
+				# print tube_radii[geo0], tube_radii[geo1], get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
 				if tube_radii[geo0]+ tube_radii[geo1] >= get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real:
-					return geo0, tube_radii[geo0], geo1, tube_radii[geo1], get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
+					return False
 		return True
 
-def naiveTubeRadius(geodesic_length, number):
-	r = geodesic_length.real
-	im = geodesic_length.imag
+def naiveTubeRadius(geodesic_lenght, number):
+	r = geodesic_lenght.real
+	im = geodesic_lenght.imag
 	return np.arccosh(np.sqrt((np.cosh(number)-np.cos(im))/(np.cosh(r)-np.cos(im))))
 
-def tubeRadius(geodesic_length, number):
-	r = geodesic_length.real
-	im = geodesic_length.imag
+def tubeRadius(geodesic_lenght, number):
+	r = geodesic_lenght.real
+	im = geodesic_lenght.imag
 	possibleRadius = []
 	for n in range(1,int(np.ceil(number/r))):
 		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
 	return max(possibleRadius)
 
-#if margulisGuess is an overestimation, some tubes intersect, one of these intersections is the cutoff  
-#Return the number that makes them just barely intersect
-def findCutoff(manifoldNumber, margulisGuess):
-	geodesics = get_geodesics(manifoldNumber,margulisGuess)
-	if not geodesics: return [0,0,0,"No Dirichlet Domain"]
-	print manifoldNumber, len(geodesics)
-	cutoffCandidates = []
-	assert len(geodesics)!=0
-	tube_radii =[]
-	for geo in geodesics:
-		tube_radii.append(tubeRadius(geo,margulisGuess))
-	for geo0 in range(len(geodesics)):
-		for geo1 in range(geo0,len(geodesics)):
-			ortholine = get_shortest_ortholine(manifoldNumber,margulisGuess,geo0,geo1).real
-			if tube_radii[geo0]+ tube_radii[geo1] >= ortholine:
-				cutoffCandidates.append([geodesics[geo0],geodesics[geo1],ortholine])
-	# print cutoffCandidates
-	if len(cutoffCandidates)==0: 
-		return findCutoff(manifoldNumber,margulisGuess+increment)
-	else:
-		candidatesOptimized = []
-		#geoSet of the form geo0, geo1, ortholength, mu
-		for geo0, geo1, ortho in cutoffCandidates:
-			candidatesOptimized.append([geo0, geo1, ortho, solveForMu(geo0,geo1,ortho)[0]])
-#if margulisGuess underestimates, 
-		if min(candidatesOptimized, key=lambda x: x[3])[3] > margulisGuess:
-			return findCutoff(manifoldNumber, min(margulisGuess + increment, min(candidatesOptimized, key=lambda x: x[3])[3]))
-		return min(candidatesOptimized, key=lambda x: x[3])
 
-def naiveSolveForMu(geoLength0, geoLength1, ortholength):
-	r0 = geoLength0.real
-	im0 = geoLength0.imag
-	r1 = geoLength1.real
-	im1 = geoLength1.imag
-	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
-		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	answer= fsolve(func,max(r0,r1)+.5)
-	return answer
-
-def solveForMu(geoLength0, geoLength1, ortholength):
-	r0 = geoLength0.real
-	im0 = geoLength0.imag
-	r1 = geoLength1.real
-	im1 = geoLength1.imag
-	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
-		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	initialAnswer = fsolve(func,max(r0,r1)+.5)
-	potentialAnswers = []
-	for n0 in range(1,int(np.ceil(initialAnswer/r0))):
-		for n1 in range(1,int(np.ceil(initialAnswer/r1))):
-			func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
-				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n1*im1))/(np.cosh(n1*r1)-np.cos(n1*im1)))) - ortholength
-			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.5,factor = .1))
-	return min(potentialAnswers)
-
-def organize(manifoldNumber, margulisGuess):
-	name, volume = get_name_and_volume(manifoldNumber)
-	geoLength0, geoLength1, ortholength, margulis = findCutoff(manifoldNumber, margulisGuess)
-	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
-
-# for i in range(6537,10000):
-# 	print organize(i,muGuess)
-# 	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
-
-
-
-# for i in range(1,10):
-# 	print findCutoff(i, 1)[-1]
-
-
-for i in range(1,20):
-	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
-	# file_writer.writerow(organize(i,1.2))
-	with open('margulis.csv','a') as file:
-		file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-		file_writer.writerow(organize(i,muGuess))
-		file.close()
-
-
-
-print "------------------", time.time() - start_time, "seconds ---------------"
-
+with open('margulis.csv','r') as file:
+	file_reader = csv.reader(file, delimiter=',')
+	for line in file_reader:
+		print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
 
