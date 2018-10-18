@@ -110,10 +110,12 @@ def tubeRadius(geodesic_lenght, number):
 		possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
 	return max(possibleRadius)
 
+
+ij = 1
 with open('margulis.csv','r') as file:
 	file_reader = csv.reader(file, delimiter=',')
 	for line in file_reader:
-		# if ij == 154:
-		print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
-
+		if ij > 4205:
+			print line[0], isMargulis(line[0],float(line[3])-0.001) and not isMargulis(line[0],float(line[3])+0.001)
+		ij = ij +1
 

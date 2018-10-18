@@ -10,8 +10,8 @@ import time
 start_time = time.time()
 
 muGuess = 1.4
-increment = .2
-getOrtholineIncrement = .3
+increment = .1
+getOrtholineIncrement = .05
 
 snapCount = 0
 
@@ -193,15 +193,17 @@ def organize(manifoldNumber, margulisGuess):
 # 	print findCutoff(i, 1)[-1]
 
 def main():
-	for i in range(171,200):
-		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
-		csvLine = organize(i,muGuess)
-		# print csvLine[3]
-		with open('margulis.csv','a') as file:
-			file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			file_writer.writerow(csvLine)
-			file.close()
+	# for i in range(171,200):
+	# 	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
+	# 	csvLine = organize(i,muGuess)
+	# 	# print csvLine[3]
+	# 	with open('margulis.csv','a') as file:
+	# 		file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+	# 		file_writer.writerow(csvLine)
+	# 		file.close()
 
+	print isMargulis(6537, 1.2)
+	print isMargulis(6537, 1.33947)
 
 
 

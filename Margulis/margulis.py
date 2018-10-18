@@ -9,9 +9,9 @@ from scipy.optimize import fsolve
 import time
 start_time = time.time()
 
-muGuess = 1.4
+muGuess = 1.3
 increment = .2
-getOrtholineIncrement = .3
+getOrtholineIncrement = .5
 
 snapCount = 0
 
@@ -79,7 +79,7 @@ def ortholine_index_different(ortholine_string):
 	lines = ortholine_string.split("i")
 	return int(lines[1][:lines[1].find(":")]) !=int(lines[2][:lines[2].find(":")])
 
-
+#Verifies that a number is margulis
 def isMargulis(manifoldNumber, number):
 	geodesics = get_geodesics(manifoldNumber,number)
 	if len(geodesics)==0: return True
@@ -93,11 +93,7 @@ def isMargulis(manifoldNumber, number):
 					return geo0, tube_radii[geo0], geo1, tube_radii[geo1], get_shortest_ortholine(manifoldNumber,number,geo0,geo1).real
 		return True
 
-def naiveTubeRadius(geodesic_length, number):
-	r = geodesic_length.real
-	im = geodesic_length.imag
-	return np.arccosh(np.sqrt((np.cosh(number)-np.cos(im))/(np.cosh(r)-np.cos(im))))
-
+#calculates the radius of a tube around a geodesic, keeping in mind that the tube sometimes might be larger when considering integer multiples of the geodesic 
 def tubeRadius(geodesic_length, number):
 	r = geodesic_length.real
 	im = geodesic_length.imag
@@ -107,45 +103,6 @@ def tubeRadius(geodesic_length, number):
 		for n in range(1,int(np.ceil(number/r))):
 			possibleRadius.append(np.arccosh(np.sqrt((np.cosh(number)-np.cos(n*im))/(np.cosh(n*r)-np.cos(n*im)))))
 		return max(possibleRadius)
-
-#if margulisGuess is an overestimation, some tubes intersect, one of these intersections is the cutoff  
-#Return the number that makes them just barely intersect
-def findCutoff(manifoldNumber, margulisGuess):
-	geodesics = get_geodesics(manifoldNumber,margulisGuess)
-	if not geodesics: return [0,0,0,"No Dirichlet Domain"]
-	print manifoldNumber, len(geodesics)
-	cutoffCandidates = []
-	assert len(geodesics)!=0
-	tube_radii =[]
-	for geo in geodesics:
-		tube_radii.append(tubeRadius(geo,margulisGuess))
-	for geo0 in range(len(geodesics)):
-		for geo1 in range(geo0,len(geodesics)):
-			ortholine = get_shortest_ortholine(manifoldNumber,margulisGuess,geo0,geo1).real
-			if tube_radii[geo0]+ tube_radii[geo1] >= ortholine:
-				cutoffCandidates.append([geodesics[geo0],geodesics[geo1],ortholine])
-	# print cutoffCandidates
-	if len(cutoffCandidates)==0: 
-		return findCutoff(manifoldNumber,margulisGuess+increment)
-	else:
-		candidatesOptimized = []
-		#geoSet of the form geo0, geo1, ortholength, mu
-		for geo0, geo1, ortho in cutoffCandidates:
-			candidatesOptimized.append([geo0, geo1, ortho, solveForMu(geo0,geo1,ortho)[0]])
-#if margulisGuess underestimates, 
-		if min(candidatesOptimized, key=lambda x: x[3])[3] > margulisGuess:
-			return findCutoff(manifoldNumber, min(margulisGuess + increment, min(candidatesOptimized, key=lambda x: x[3])[3]))
-		return min(candidatesOptimized, key=lambda x: x[3])
-
-def naiveSolveForMu(geoLength0, geoLength1, ortholength):
-	r0 = geoLength0.real
-	im0 = geoLength0.imag
-	r1 = geoLength1.real
-	im1 = geoLength1.imag
-	func = lambda mu : np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
-		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	answer= fsolve(func,max(r0,r1)+.5)
-	return answer
 
 def solveForMu(geoLength0, geoLength1, ortholength):
 	if geoLength0.real > geoLength1.real:
@@ -168,6 +125,7 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
 	initialAnswer = fsolve(func,max(r0,r1)+.01, factor = .1)
+	#now we take into account the possibliity of a multiple of one of the geodsics doing better
 	potentialAnswers = []
 	for n0 in range(1,int(np.ceil((initialAnswer+.01)/r0))):
 		for n1 in range(1,int(np.ceil((initialAnswer+.01)/r1))):
@@ -178,22 +136,44 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .1))
 	return min(potentialAnswers)
 
+#Primary function.  Organizes the search for minimum mu
+#if margulisGuess is an overestimation, some tubes intersect, one of these intersections is the cutoff  
+#Return the number that makes them just barely intersect
+def findCutoff(manifoldNumber, margulisGuess):
+	geodesics = get_geodesics(manifoldNumber,margulisGuess)
+	if not geodesics: return [0,0,0,"No Dirichlet Domain"]
+	print manifoldNumber, len(geodesics)
+	cutoffCandidates = []
+	assert len(geodesics)!=0
+	tube_radii =[]
+	for geo in geodesics:
+		tube_radii.append(tubeRadius(geo,margulisGuess))
+	for geo0 in range(len(geodesics)):
+		for geo1 in range(geo0,len(geodesics)):
+			ortholine = get_shortest_ortholine(manifoldNumber,margulisGuess,geo0,geo1).real
+			if tube_radii[geo0]+ tube_radii[geo1] >= ortholine:
+				cutoffCandidates.append([geodesics[geo0],geodesics[geo1],ortholine])
+	if len(cutoffCandidates)==0: 
+		return findCutoff(manifoldNumber,margulisGuess+increment)
+	else:
+		candidatesOptimized = []
+		for geo0, geo1, ortho in cutoffCandidates:
+			candidatesOptimized.append([geo0, geo1, ortho, solveForMu(geo0,geo1,ortho)[0]])
+#if margulisGuess is an underestimation, we potentially didn't consider all relevent pairs of geodesics, run again with output as a new guess 
+		if min(candidatesOptimized, key=lambda x: x[3])[3] > margulisGuess:
+			return findCutoff(manifoldNumber, min(margulisGuess + increment, min(candidatesOptimized, key=lambda x: x[3])[3]))
+		return min(candidatesOptimized, key=lambda x: x[3])
+
+#reorders and reformats for .csv output
 def organize(manifoldNumber, margulisGuess):
 	name, volume = get_name_and_volume(manifoldNumber)
 	geoLength0, geoLength1, ortholength, margulis = findCutoff(manifoldNumber, margulisGuess)
 	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
 
-# for i in range(6537,10000):
-# 	print organize(i,muGuess)
-# 	print "------------------", time.time() - start_time, "seconds ---------------", snapCount
 
-
-
-# for i in range(1,10):
-# 	print findCutoff(i, 1)[-1]
 
 def main():
-	for i in range(1,200):
+	for i in range(10000, 12000):
 		print "------------------", time.time() - start_time, "seconds ---------------", snapCount
 		csvLine = organize(i,muGuess)
 		# print csvLine[3]
