@@ -10,9 +10,9 @@ import time
 start_time = time.time()
 
 
-muGuess = 1.3
+muGuess = 1.2
 #if muGuess is too low, try again with muGuess + 
-increment = .2
+increment = .1
 #with too high an increment, snap is more likely to crash
 getOrtholineIncrement = .5
 
@@ -117,20 +117,20 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 	#we can assume r1>r0
 	if tubeRadius(geoLength0,r1) >= ortholength: 
 		return [r1]
-	func = lambda mu : -ortholength if mu<r0 else \
+	func = lambda mu : -1000*ortholength if mu<r0 else \
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))-ortholength if mu<=r1 else \
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im0))/(np.cosh(r0)-np.cos(im0))))+\
 		np.arccosh(np.sqrt((np.cosh(mu)-np.cos(im1))/(np.cosh(r1)-np.cos(im1)))) - ortholength
-	initialAnswer = fsolve(func,max(r0,r1)+.01, factor = .1)
+	initialAnswer = fsolve(func,max(r0,r1)+.01, factor = .001)
 	#now we take into account the possibliity of a multiple of one of the geodsics doing better
 	potentialAnswers = []
 	for n0 in range(1,int(np.ceil((initialAnswer+.01)/r0))):
 		for n1 in range(1,int(np.ceil((initialAnswer+.01)/r1))):
-			func = lambda mu : -ortholength if mu<r0 else \
+			func = lambda mu : -1000*ortholength if mu<r0 else \
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))-ortholength if mu<=r1 else \
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n1*im1))/(np.cosh(n1*r1)-np.cos(n1*im1)))) - ortholength
-			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .1))
+			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .001))
 	return min(potentialAnswers)
 
 #Primary function.  Organizes the search for minimum mu
@@ -168,15 +168,31 @@ def organize(manifoldNumber, margulisGuess):
 	return[manifoldNumber, name, volume, margulis, geoLength0, geoLength1, ortholength]
 
 
+
 def main():
+
+	with open('margulis_incorrect.csv','r') as file:
+		file_reader = csv.reader(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+		for row in file_reader:
+			print row[0],findCutoff(row[0], muGuess)[3] - float(row[9])
+			csvLine = organize(row[0],muGuess)
+			with open('margulis_corrected.csv','a') as file:
+				file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+				file_writer.writerow(csvLine)
+				file.close()
+
+	'''
 	for i in range(10000, 12000):
-		# print "------------------", time.time() - start_time, "seconds ---------------"
 		csvLine = organize(i,muGuess)
-		# print csvLine[3]
 		with open('margulis.csv','a') as file:
 			file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			file_writer.writerow(csvLine)
 			file.close()
+	'''
+
+	#Write Corrections
+
+
 
 if __name__ == "__main__":
 	main()
