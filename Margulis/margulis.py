@@ -131,6 +131,7 @@ def solveForMu(geoLength0, geoLength1, ortholength):
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n0*im0))/(np.cosh(n0*r0)-np.cos(n0*im0))))+\
 				np.arccosh(np.sqrt((np.cosh(mu)-np.cos(n1*im1))/(np.cosh(n1*r1)-np.cos(n1*im1)))) - ortholength
 			potentialAnswers.append(fsolve(func,max(n0*r0,n1*r1)+.01,factor = .001))
+	assert min(potentialAnswers)> r0 and min(potentialAnswers)> r1
 	return min(potentialAnswers)
 
 #Primary function.  Organizes the search for minimum mu
@@ -175,11 +176,11 @@ def main():
 		file_reader = csv.reader(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 		for row in file_reader:
 			print row[0],findCutoff(row[0], muGuess)[3] - float(row[9])
-			csvLine = organize(row[0],muGuess)
-			with open('margulis_corrected.csv','a') as file:
-				file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-				file_writer.writerow(csvLine)
-				file.close()
+			# csvLine = organize(row[0],muGuess)
+			# with open('margulis_corrected.csv','a') as file:
+			# 	file_writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+			# 	file_writer.writerow(csvLine)
+			# 	file.close()
 
 	'''
 	for i in range(10000, 12000):
